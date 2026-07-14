@@ -294,12 +294,12 @@ func RenderGame(gm *game.GameMap, cursor game.Position, activeMenu string, selec
 	switch activeMenu {
 	case "architect":
 		sb.WriteString("\033[1;36m▲ ARCHITECT BUILD MENU ▲\033[0m\n")
-		sb.WriteString("Press keys to select blueprint blueprint to place with cursor:\n")
-		sb.WriteString("[w] Wall (Steel/Wood)     [d] Door                  [b] Bed\n")
+		sb.WriteString("Place blueprints on cursor and move with HJKL / WASD. Place multiple blueprints without escaping:\n")
+		sb.WriteString("[q] Wall                  [e] Door                  [b] Bed\n")
 		sb.WriteString("[g] Fueled Gen (Power)    [s] Solar Panel           [p] Battery\n")
 		sb.WriteString("[c] Cooler (Temp)         [h] Heater                [t] Auto Turret\n")
-		sb.WriteString("[r] Research Bench        [k] Sandbag cover         [u] Butcher Table\n")
-		sb.WriteString("[o] Stockpile Zone        [z] Growing Zone (Rice)   [Esc] Close Menu\n")
+		sb.WriteString("[r] Research Bench        [k] Sandbag cover         [o] Stockpile Zone\n")
+		sb.WriteString("[z] Growing Zone (Rice)   [Esc] Done placing blueprints / Exit Menu\n")
 
 	case "work":
 		sb.WriteString("\033[1;33m▲ COLONIST WORK PRIORITIES (0-4) ▲\033[0m\n")

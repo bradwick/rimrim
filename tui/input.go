@@ -65,46 +65,31 @@ func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, active
 		return
 	}
 
-	// Move cursor keys (WASD for simple intuitive map movement)
+	// Move cursor keys (WASD and HJKL Vim keys for simple intuitive map movement)
 	switch char {
-	case 'w':
-		if *activeMenu == "" {
+	case 'w', 'k':
+		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.Y > 0 {
 				cursor.Y--
 			}
-		} else if *activeMenu == "architect" {
-			// Blueprint construction placement: Wall
-			placeBlueprint(gm, *cursor, game.BuildingWall)
-			*activeMenu = ""
 		}
-	case 's':
-		if *activeMenu == "" {
+	case 's', 'j':
+		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.Y < gm.Height-1 {
 				cursor.Y++
 			}
-		} else if *activeMenu == "architect" {
-			// Solar Panel
-			placeBlueprint(gm, *cursor, game.BuildingSolarPanel)
-			*activeMenu = ""
 		}
-	case 'a':
-		if *activeMenu == "" {
+	case 'a', 'h':
+		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.X > 0 {
 				cursor.X--
 			}
-		} else if *activeMenu == "architect" {
-			// Enable full Architect blueprint category list
-			*activeMenu = "architect"
 		}
-	case 'd':
-		if *activeMenu == "" {
+	case 'd', 'l':
+		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.X < gm.Width-1 {
 				cursor.X++
 			}
-		} else if *activeMenu == "architect" {
-			// Door blueprint
-			placeBlueprint(gm, *cursor, game.BuildingDoor)
-			*activeMenu = ""
 		}
 
 	// Overlay menu shortcut commands
@@ -218,44 +203,40 @@ func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, active
 			}
 
 		} else if *activeMenu == "architect" {
-			// Map specific blueprints other keys
+			// Map specific blueprints other keys (Do not escape menu so multiple consecutive placements are possible)
 			switch char {
+			case 'q': // Place Wall Blueprint
+				placeBlueprint(gm, *cursor, game.BuildingWall)
+			case 'e': // Place Door Blueprint
+				placeBlueprint(gm, *cursor, game.BuildingDoor)
 			case 'b':
 				placeBlueprint(gm, *cursor, game.BuildingBed)
-				*activeMenu = ""
 			case 'g':
 				placeBlueprint(gm, *cursor, game.BuildingGenerator)
-				*activeMenu = ""
 			case 'p':
 				placeBlueprint(gm, *cursor, game.BuildingBattery)
-				*activeMenu = ""
+			case 's': // Place Solar panel
+				placeBlueprint(gm, *cursor, game.BuildingSolarPanel)
 			case 'c':
 				placeBlueprint(gm, *cursor, game.BuildingCooler)
-				*activeMenu = ""
 			case 'h':
 				placeBlueprint(gm, *cursor, game.BuildingHeater)
-				*activeMenu = ""
 			case 't':
 				if gm.TechUnlocked["Machining"] {
 					placeBlueprint(gm, *cursor, game.BuildingTurret)
 				} else {
 					gm.Log("Requires Machining Research unlocked first!")
 				}
-				*activeMenu = ""
 			case 'r':
 				placeBlueprint(gm, *cursor, game.BuildingResBench)
-				*activeMenu = ""
 			case 'k':
 				placeBlueprint(gm, *cursor, game.BuildingSandbag)
-				*activeMenu = ""
 			case 'o':
 				// Create stockpile zone
 				createZone(gm, *cursor, game.ZoneStockpile)
-				*activeMenu = ""
 			case 'z':
 				// Create growing zone
 				createZone(gm, *cursor, game.ZoneGrowing)
-				*activeMenu = ""
 			}
 		}
 	}
