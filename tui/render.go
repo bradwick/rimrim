@@ -18,8 +18,8 @@ func RenderGame(gm *game.GameMap, cursor game.Position, activeMenu string, selec
 
 	// Top title bar / simulation details
 	sb.WriteString("\033[H\033[48;5;235m\033[38;5;255m")
-	sb.WriteString(fmt.Sprintf("  ▲ RIMWORLD TUI CLONE ▲   Day %d | Hour %02d:00 | Outdoor: %.1f°C | Weather: %s | Speed: %d (1-3, P=Pause)  \n",
-		gm.Day, gm.Hour, gm.OutdoorTemp, gm.Weather, gm.GameSpeed))
+	sb.WriteString(fmt.Sprintf("  ▲ RIMWORLD 16-BIT RETRO EDITION ▲   Day %d | Hour %02d:00 | Outdoor: %.1f°C | Weather: %s | Mode: %s (v=toggle) | Speed: %d (1-3, Space=Pause)  \n",
+		gm.Day, gm.Hour, gm.OutdoorTemp, gm.Weather, renderMode, gm.GameSpeed))
 	sb.WriteString("\033[0m")
 
 	// Pre-compile sprites
@@ -29,112 +29,256 @@ func RenderGame(gm *game.GameMap, cursor game.Position, activeMenu string, selec
 			tile := gm.Grid[y][x]
 
 			// Highlight selection cursor
-			if pos == cursor {
-				sb.WriteString("\033[48;5;240m")
-			}
+			isCursor := pos == cursor
 
-			// Render layers: 1) fire 2) projectile 3) colonist/enemy 4) building 5) item 6) terrain
-			if _, ok := gm.Fires[pos]; ok {
-				sb.WriteString("🔥")
-			} else if isProjectileAt(gm, pos) {
-				sb.WriteString("💥")
-			} else if col, ok := getColonistAt(gm, pos); ok {
-				if col.Drafted {
-					sb.WriteString("💂") // combat soldier override
-				} else {
-					if col.Emoji != "" {
-						sb.WriteString(col.Emoji)
-					} else {
-						sb.WriteString("🧑") // regular fallback
-					}
-				}
-			} else if enemy, ok := getEnemyAt(gm, pos); ok {
-				_ = enemy
-				sb.WriteString("🏴") // pirate / raider
-			} else if b, ok := gm.Buildings[pos]; ok {
-				if b.IsBlueprint {
-					sb.WriteString("📝")
-				} else {
-					switch b.Type {
-					case game.BuildingWall:
-						sb.WriteString("🧱")
-					case game.BuildingDoor:
-						sb.WriteString("🚪")
-					case game.BuildingBed:
-						sb.WriteString("🛏️")
-					case game.BuildingSolarPanel:
-						sb.WriteString("☀️")
-					case game.BuildingGenerator:
-						sb.WriteString("⚙️")
-					case game.BuildingBattery:
-						sb.WriteString("🔋")
-					case game.BuildingConduit:
-						sb.WriteString("⚡")
-					case game.BuildingHeater:
-						sb.WriteString("🔥")
-					case game.BuildingCooler:
-						sb.WriteString("❄️")
-					case game.BuildingTurret:
-						sb.WriteString("🔫")
-					case game.BuildingResBench:
-						sb.WriteString("🔬")
-					case game.BuildingSandbag:
-						sb.WriteString("🛡️")
-					case game.BuildingButcher:
-						sb.WriteString("🔪")
-					case game.BuildingStove:
-						sb.WriteString("🍳")
-					default:
-						sb.WriteString("🏠")
-					}
-				}
-			} else if item, ok := gm.Items[pos]; ok {
-				switch item.Type {
-				case game.ItemSteel:
-					sb.WriteString("🔩")
-				case game.ItemComponents:
-					sb.WriteString("⚙️")
-				case game.ItemGold:
-					sb.WriteString("🪙")
-				case game.ItemWood:
-					sb.WriteString("🪵")
-				case game.ItemRice:
-					sb.WriteString("🌾")
-				case game.ItemPotato:
-					sb.WriteString("🥔")
-				case game.ItemHealroot:
-					sb.WriteString("🌿")
-				case game.ItemMealSimple:
-					sb.WriteString("🍲")
-				case game.ItemMealFine:
-					sb.WriteString("🍱")
-				case game.ItemPistol:
-					sb.WriteString("🔫")
-				case game.ItemRifle:
-					sb.WriteString("🔫")
-				default:
-					sb.WriteString("📦")
-				}
-			} else {
-				// Terrain
+			if renderMode == "16bit" {
+				// 16-bit retro graphics pixel block using beautiful background/foreground 24-bit TrueColor (RGB) styling
+				bgRGB := "38;2;20;80;20" // default soil dark-green
+				fgRGB := "38;2;255;255;255"
+				charStr := "░░"
+
+				// Determine base tile terrain colors
 				switch tile.Type {
 				case game.TileWater:
-					sb.WriteString("💧")
+					bgRGB = "48;2;10;50;150" // deep water blue
+					fgRGB = "38;2;30;130;255"
+					charStr = "~~"
 				case game.TileMountain:
-					sb.WriteString("⛰️")
+					bgRGB = "48;2;80;80;80" // stone grey
+					fgRGB = "38;2;150;150;150"
+					charStr = "▲▲"
 				case game.TileFertileSoil:
-					sb.WriteString("🌱")
+					bgRGB = "48;2;30;95;30" // rich green
+					fgRGB = "38;2;100;240;100"
+					charStr = "🌱"
 				case game.TileStonySoil:
-					sb.WriteString("🪨")
+					bgRGB = "48;2;60;70;60" // gravel
+					fgRGB = "38;2;140;140;140"
+					charStr = "::"
 				case game.TileFloor:
-					sb.WriteString("🪵")
-				default:
-					sb.WriteString("🟩") // regular soil
+					bgRGB = "48;2;110;80;40" // rich wood brown
+					fgRGB = "38;2;220;180;120"
+					charStr = "##"
+				default: // TileSoil
+					bgRGB = "48;2;30;75;30"
+					fgRGB = "38;2;80;140;80"
+					charStr = "░░"
 				}
-			}
 
-			if pos == cursor {
-				sb.WriteString("\033[0m")
+				// Apply active dynamic structures layer
+				if _, ok := gm.Fires[pos]; ok {
+					bgRGB = "48;2;200;50;10"
+					fgRGB = "38;2;255;230;30"
+					charStr = "🔥"
+				} else if isProjectileAt(gm, pos) {
+					bgRGB = "48;2;255;100;100"
+					fgRGB = "38;2;255;255;255"
+					charStr = "**"
+				} else if col, ok := getColonistAt(gm, pos); ok {
+					if col.Drafted {
+						bgRGB = "48;2;200;10;10" // military red
+						fgRGB = "38;2;255;255;255"
+						charStr = "💂"
+					} else {
+						bgRGB = "48;2;10;150;180" // teal colonist shirt
+						fgRGB = "38;2;255;224;189"
+						charStr = "🧑"
+					}
+				} else if enemy, ok := getEnemyAt(gm, pos); ok {
+					_ = enemy
+					bgRGB = "48;2;100;0;0" // hostile crimson
+					fgRGB = "38;2;255;50;50"
+					charStr = "🏴"
+				} else if b, ok := gm.Buildings[pos]; ok {
+					if b.IsBlueprint {
+						bgRGB = "48;2;150;150;100"
+						fgRGB = "38;2;255;255;255"
+						charStr = "📝"
+					} else {
+						switch b.Type {
+						case game.BuildingWall:
+							bgRGB = "48;2;100;100;100" // metallic grey
+							fgRGB = "38;2;200;200;200"
+							charStr = "🧱"
+						case game.BuildingDoor:
+							bgRGB = "48;2;120;90;50"
+							fgRGB = "38;2;255;255;255"
+							charStr = "🚪"
+						case game.BuildingBed:
+							bgRGB = "48;2;50;50;180"
+							fgRGB = "38;2;255;255;255"
+							charStr = "🛏️"
+						case game.BuildingSolarPanel:
+							bgRGB = "48;2;20;30;80"
+							fgRGB = "38;2;50;150;255"
+							charStr = "☀️"
+						case game.BuildingGenerator:
+							bgRGB = "48;2;120;60;20"
+							fgRGB = "38;2;255;180;0"
+							charStr = "⚙️"
+						case game.BuildingBattery:
+							bgRGB = "48;2;20;120;20"
+							fgRGB = "38;2;100;255;100"
+							charStr = "🔋"
+						case game.BuildingHeater:
+							bgRGB = "48;2;150;30;30"
+							fgRGB = "38;2;255;100;100"
+							charStr = "🔥"
+						case game.BuildingCooler:
+							bgRGB = "48;2;30;80;180"
+							fgRGB = "38;2;100;200;255"
+							charStr = "❄️"
+						case game.BuildingTurret:
+							bgRGB = "48;2;80;20;20"
+							fgRGB = "38;2;255;50;50"
+							charStr = "🔫"
+						default:
+							bgRGB = "48;2;80;80;80"
+							fgRGB = "38;2;255;255;255"
+							charStr = "🏠"
+						}
+					}
+				} else if item, ok := gm.Items[pos]; ok {
+					switch item.Type {
+					case game.ItemSteel:
+						bgRGB = "48;2;50;55;65"
+						fgRGB = "38;2;220;225;235"
+						charStr = "🔩"
+					case game.ItemComponents:
+						bgRGB = "48;2;80;40;10"
+						fgRGB = "38;2;255;140;0"
+						charStr = "⚙️"
+					case game.ItemGold:
+						bgRGB = "48;2;150;120;10"
+						fgRGB = "38;2;255;220;0"
+						charStr = "🪙"
+					case game.ItemWood:
+						bgRGB = "48;2;80;50;20"
+						fgRGB = "38;2;180;120;50"
+						charStr = "🪵"
+					case game.ItemMealSimple:
+						bgRGB = "48;2;60;50;30"
+						fgRGB = "38;2;255;180;100"
+						charStr = "🍲"
+					default:
+						bgRGB = "48;2;40;40;40"
+						fgRGB = "38;2;200;200;200"
+						charStr = "📦"
+					}
+				}
+
+				if isCursor {
+					sb.WriteString(fmt.Sprintf("\033[48;2;200;180;50m\033[%s;1m%s\033[0m", fgRGB, charStr))
+				} else {
+					sb.WriteString(fmt.Sprintf("\033[%s;%sm%s\033[0m", bgRGB, fgRGB, charStr))
+				}
+			} else {
+				// Standard Classic emoji styling
+				if isCursor {
+					sb.WriteString("\033[48;5;240m")
+				}
+
+				if _, ok := gm.Fires[pos]; ok {
+					sb.WriteString("🔥")
+				} else if isProjectileAt(gm, pos) {
+					sb.WriteString("💥")
+				} else if col, ok := getColonistAt(gm, pos); ok {
+					if col.Drafted {
+						sb.WriteString("💂")
+					} else {
+						if col.Emoji != "" {
+							sb.WriteString(col.Emoji)
+						} else {
+							sb.WriteString("🧑")
+						}
+					}
+				} else if enemy, ok := getEnemyAt(gm, pos); ok {
+					_ = enemy
+					sb.WriteString("🏴")
+				} else if b, ok := gm.Buildings[pos]; ok {
+					if b.IsBlueprint {
+						sb.WriteString("📝")
+					} else {
+						switch b.Type {
+						case game.BuildingWall:
+							sb.WriteString("🧱")
+						case game.BuildingDoor:
+							sb.WriteString("🚪")
+						case game.BuildingBed:
+							sb.WriteString("🛏️")
+						case game.BuildingSolarPanel:
+							sb.WriteString("☀️")
+						case game.BuildingGenerator:
+							sb.WriteString("⚙️")
+						case game.BuildingBattery:
+							sb.WriteString("🔋")
+						case game.BuildingConduit:
+							sb.WriteString("⚡")
+						case game.BuildingHeater:
+							sb.WriteString("🔥")
+						case game.BuildingCooler:
+							sb.WriteString("❄️")
+						case game.BuildingTurret:
+							sb.WriteString("🔫")
+						case game.BuildingResBench:
+							sb.WriteString("🔬")
+						case game.BuildingSandbag:
+							sb.WriteString("🛡️")
+						case game.BuildingButcher:
+							sb.WriteString("🔪")
+						case game.BuildingStove:
+							sb.WriteString("🍳")
+						default:
+							sb.WriteString("🏠")
+						}
+					}
+				} else if item, ok := gm.Items[pos]; ok {
+					switch item.Type {
+					case game.ItemSteel:
+						sb.WriteString("🔩")
+					case game.ItemComponents:
+						sb.WriteString("⚙️")
+					case game.ItemGold:
+						sb.WriteString("🪙")
+					case game.ItemWood:
+						sb.WriteString("🪵")
+					case game.ItemRice:
+						sb.WriteString("🌾")
+					case game.ItemPotato:
+						sb.WriteString("🥔")
+					case game.ItemHealroot:
+						sb.WriteString("🌿")
+					case game.ItemMealSimple:
+						sb.WriteString("🍲")
+					case game.ItemMealFine:
+						sb.WriteString("🍱")
+					case game.ItemPistol:
+						sb.WriteString("🔫")
+					case game.ItemRifle:
+						sb.WriteString("🔫")
+					default:
+						sb.WriteString("📦")
+					}
+				} else {
+					switch tile.Type {
+					case game.TileWater:
+						sb.WriteString("💧")
+					case game.TileMountain:
+						sb.WriteString("⛰️")
+					case game.TileFertileSoil:
+						sb.WriteString("🌱")
+					case game.TileStonySoil:
+						sb.WriteString("🪨")
+					case game.TileFloor:
+						sb.WriteString("🪵")
+					default:
+						sb.WriteString("🟩")
+					}
+				}
+
+				if isCursor {
+					sb.WriteString("\033[0m")
+				}
 			}
 		}
 		sb.WriteString("\n")
@@ -142,7 +286,7 @@ func RenderGame(gm *game.GameMap, cursor game.Position, activeMenu string, selec
 
 	// Bottom command bar
 	sb.WriteString("\033[48;5;238m\033[38;5;255m")
-	sb.WriteString("  [A] Architect  [W] Work Priority  [S] Schedule  [R] Research Tree  [D] Draft Colonist  [Space] Pause/Play  \n")
+	sb.WriteString("  [A] Architect  [W] Work Priority  [S] Schedule  [R] Research Tree  [D] Draft Colonist  [v] Toggle graphics  [Space] Pause/Play  \n")
 	sb.WriteString("\033[0m")
 
 	// Command overlay window / Sidebar options details

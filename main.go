@@ -14,20 +14,28 @@ func main() {
 	setRawMode(true)
 	defer setRawMode(false)
 
+	// Enable standard mouse reporting (xterm format)
+	os.Stdout.WriteString("\033[?1000h\033[?1006h")
+	defer os.Stdout.WriteString("\033[?1000l\033[?1006l")
+
 	gm := game.GenerateMap(50, 30)
 	cursor := game.Position{X: 25, Y: 15}
 	activeMenu := ""
 	selectedCol := 0
+	renderMode := "16bit" // Defaults to beautiful 16-bit TrueColor retro graphics!
 
 	// Handle standard input stream reading in non-blocking background thread
-	inputChan := make(chan rune, 100)
+	inputChan := make(chan string, 100)
 	go func() {
+		buf := make([]byte, 128)
 		for {
-			r, err := tui.ReadKey()
+			n, err := os.Stdin.Read(buf)
 			if err != nil {
 				return
 			}
-			inputChan <- r
+			if n > 0 {
+				inputChan <- string(buf[:n])
+			}
 		}
 	}()
 
@@ -40,12 +48,14 @@ func main() {
 
 	for {
 		select {
-		case char := <-inputChan:
-			if char == 'q' || char == 'Q' {
-				// Escape/Exit game sequence
-				return
+		case inputStr := <-inputChan:
+			// Check for ESC / Mouse Sequences / Special Keys
+			if len(inputStr) > 0 {
+				if inputStr == "q" || inputStr == "Q" {
+					return
+				}
+				tui.ProcessRawInput(inputStr, gm, &cursor, &activeMenu, &selectedCol, &renderMode)
 			}
-			tui.ProcessInput(char, gm, &cursor, &activeMenu, &selectedCol)
 
 		case <-ticker.C:
 			// Drive game logic simulation if not paused
@@ -62,7 +72,7 @@ func main() {
 
 			// Render current status details
 			tui.ClearScreen()
-			tui.RenderGame(gm, cursor, activeMenu, selectedCol, "emoji")
+			tui.RenderGame(gm, cursor, activeMenu, selectedCol, renderMode)
 		}
 	}
 }

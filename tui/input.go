@@ -6,11 +6,62 @@ import (
 	"rimworld_tui/game"
 )
 
-// ProcessInput listens to fully keyboard-driven keystrokes and routes commands.
-func ProcessInput(char rune, gm *game.GameMap, cursor *game.Position, activeMenu *string, selectedCol *int) {
+import (
+	"strings"
+)
+
+// ProcessRawInput processes string input including keyboard and SGR mouse clicks.
+func ProcessRawInput(input string, gm *game.GameMap, cursor *game.Position, activeMenu *string, selectedCol *int, renderMode *string) {
+	// 1. Handle SGR Mouse Sequences: e.g. "\033[<0;24;12M" or "\033[<0;24;12m"
+	if strings.HasPrefix(input, "\033[<") {
+		parts := strings.Split(strings.TrimRight(input, "Mm"), ";")
+		if len(parts) >= 3 {
+			var x, y int
+			// First item in parts is "\033[<0" (the button)
+			// Second item is column (X)
+			// Third item is line (Y)
+			_, _ = fmt.Sscanf(parts[1], "%d", &x)
+			_, _ = fmt.Sscanf(parts[2], "%d", &y)
+
+			// Compensate offsets for header rendering offset of 1 row
+			mapY := y - 2
+			// 16-bit mode uses double-width characters (e.g. 2 columns per character)
+			mapX := (x - 1)
+			if *renderMode == "16bit" {
+				mapX = (x - 1) / 2
+			}
+
+			if mapX >= 0 && mapX < gm.Width && mapY >= 0 && mapY < gm.Height {
+				cursor.X = mapX
+				cursor.Y = mapY
+				gm.Log(fmt.Sprintf("Mouse Click registered at [%d, %d]", mapX, mapY))
+			}
+		}
+		return
+	}
+
+	// 2. Fallback to processing raw single-rune keyboard inputs
+	for _, char := range input {
+		ProcessSingleKey(char, gm, cursor, activeMenu, selectedCol, renderMode)
+	}
+}
+
+// ProcessSingleKey processes individual keystroke commands.
+func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, activeMenu *string, selectedCol *int, renderMode *string) {
 	// Global ESC key to close/reset overlays
 	if char == 27 { // ESC
 		*activeMenu = ""
+		return
+	}
+
+	if char == 'v' {
+		if *renderMode == "16bit" {
+			*renderMode = "emoji"
+			gm.Log("Graphics display changed to: Emoji Mode")
+		} else {
+			*renderMode = "16bit"
+			gm.Log("Graphics display changed to: 16-Bit Retro Mode")
+		}
 		return
 	}
 
