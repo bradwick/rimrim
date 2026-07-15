@@ -65,27 +65,28 @@ func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, active
 		return
 	}
 
-	// Move cursor keys (WASD and HJKL Vim keys for simple intuitive map movement)
+	// Move cursor keys (Only Vim HJKL keys for simple intuitive map movement)
+	// This completely avoids any WASD key collisions inside Architect Mode!
 	switch char {
-	case 'w', 'k':
+	case 'k':
 		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.Y > 0 {
 				cursor.Y--
 			}
 		}
-	case 's', 'j':
+	case 'j':
 		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.Y < gm.Height-1 {
 				cursor.Y++
 			}
 		}
-	case 'a', 'h':
+	case 'h':
 		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.X > 0 {
 				cursor.X--
 			}
 		}
-	case 'd', 'l':
+	case 'l':
 		if *activeMenu == "" || *activeMenu == "architect" {
 			if cursor.X < gm.Width-1 {
 				cursor.X++
@@ -205,9 +206,9 @@ func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, active
 		} else if *activeMenu == "architect" {
 			// Map specific blueprints other keys (Do not escape menu so multiple consecutive placements are possible)
 			switch char {
-			case 'q': // Place Wall Blueprint
+			case 'w': // Place Wall Blueprint (perfectly free now!)
 				placeBlueprint(gm, *cursor, game.BuildingWall)
-			case 'e': // Place Door Blueprint
+			case 'd': // Place Door Blueprint (perfectly free now!)
 				placeBlueprint(gm, *cursor, game.BuildingDoor)
 			case 'b':
 				placeBlueprint(gm, *cursor, game.BuildingBed)
@@ -215,7 +216,7 @@ func ProcessSingleKey(char rune, gm *game.GameMap, cursor *game.Position, active
 				placeBlueprint(gm, *cursor, game.BuildingGenerator)
 			case 'p':
 				placeBlueprint(gm, *cursor, game.BuildingBattery)
-			case 's': // Place Solar panel
+			case 's': // Place Solar panel (perfectly free now!)
 				placeBlueprint(gm, *cursor, game.BuildingSolarPanel)
 			case 'c':
 				placeBlueprint(gm, *cursor, game.BuildingCooler)

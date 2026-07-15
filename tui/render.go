@@ -294,8 +294,8 @@ func RenderGame(gm *game.GameMap, cursor game.Position, activeMenu string, selec
 	switch activeMenu {
 	case "architect":
 		sb.WriteString("\033[1;36m▲ ARCHITECT BUILD MENU ▲\033[0m\n")
-		sb.WriteString("Place blueprints on cursor and move with HJKL / WASD. Place multiple blueprints without escaping:\n")
-		sb.WriteString("[q] Wall                  [e] Door                  [b] Bed\n")
+		sb.WriteString("Place blueprints on cursor and move with HJKL. Place multiple blueprints without escaping:\n")
+		sb.WriteString("[w] Wall                  [d] Door                  [b] Bed\n")
 		sb.WriteString("[g] Fueled Gen (Power)    [s] Solar Panel           [p] Battery\n")
 		sb.WriteString("[c] Cooler (Temp)         [h] Heater                [t] Auto Turret\n")
 		sb.WriteString("[r] Research Bench        [k] Sandbag cover         [o] Stockpile Zone\n")
